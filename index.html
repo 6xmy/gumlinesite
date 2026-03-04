@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gumline — Cross-Server Calling, Done Right</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --pink-mid: #f472b6;
+      --pink-hot: #ec4899;
+      --pink-deep: #db2777;
+      --white: #ffffff;
+      --off: #fdf2f8;
+      --text: #1e1e2e;
+      --muted: #6b7280;
+      --grad: linear-gradient(135deg, #c084fc 0%, #f472b6 50%, #fb7185 100%);
+      --grad-soft: linear-gradient(135deg, #fce7f3 0%, #fdf2f8 60%, #f3e8ff 100%);
+      --rule: #fce7f3;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--white); color: var(--text); font-family: 'Space Grotesk', sans-serif; font-weight: 400; line-height: 1.6; overflow-x: hidden; }
+
+    /* NAV */
+    nav { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; }
+    .nav-logo { display: flex; align-items: center; gap: 0.6rem; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.25rem; color: var(--text); text-decoration: none; }
+    .nav-logo img { width: 32px; height: 32px; border-radius: 8px; }
+    .nav-links { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-link { font-size: 0.85rem; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .nav-link:hover { color: var(--pink-hot); }
+    .btn-nav { background: var(--grad); color: white; text-decoration: none; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.85rem; padding: 0.5rem 1.25rem; border-radius: 999px; transition: opacity 0.2s, transform 0.15s; white-space: nowrap; }
+    .btn-nav:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    /* HERO */
+    .hero { background: var(--grad-soft); padding: 5rem 2rem 4rem; text-align: center; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(240,100,180,0.12) 0%, transparent 70%); pointer-events: none; }
+    .hero-banner { max-width: 680px; width: 100%; border-radius: 20px; margin: 0 auto 2.5rem; display: block; box-shadow: 0 20px 60px rgba(236,72,153,0.2); animation: floatUp 0.8s ease forwards; opacity: 0; transform: translateY(20px); }
+    .hero-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: white; border: 1px solid var(--rule); border-radius: 999px; padding: 0.3rem 0.9rem; font-size: 0.75rem; font-weight: 600; color: var(--pink-hot); margin-bottom: 1.2rem; animation: floatUp 0.6s ease forwards 0.1s; opacity: 0; }
+    h1 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: clamp(2.2rem, 6vw, 3.8rem); line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 1.2rem; animation: floatUp 0.6s ease forwards 0.2s; opacity: 0; }
+    h1 span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 520px; margin: 0 auto 2.2rem; line-height: 1.75; animation: floatUp 0.6s ease forwards 0.3s; opacity: 0; }
+    .cta-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; animation: floatUp 0.6s ease forwards 0.4s; opacity: 0; }
+    .btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--grad); color: white; text-decoration: none; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1rem; padding: 0.85rem 2rem; border-radius: 999px; box-shadow: 0 8px 30px rgba(236,72,153,0.35); transition: transform 0.2s, box-shadow 0.2s; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(236,72,153,0.45); }
+    .btn-secondary { display: inline-flex; align-items: center; gap: 0.5rem; background: white; color: var(--pink-hot); text-decoration: none; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 1rem; padding: 0.85rem 2rem; border-radius: 999px; border: 2px solid var(--rule); transition: border-color 0.2s, transform 0.2s; }
+    .btn-secondary:hover { border-color: var(--pink-mid); transform: translateY(-2px); }
+
+    /* SCREENSHOT */
+    .screenshot-section { padding: 4rem 2rem; max-width: 640px; margin: 0 auto; text-align: center; }
+    .screenshot-wrap { background: #1e1f2e; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.06); }
+    .discord-topbar { background: #2b2d3a; padding: 0.65rem 1rem; display: flex; align-items: center; gap: 0.45rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .screenshot-img { width: 100%; display: block; }
+
+    /* SECTION COMMON */
+    .section-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--pink-hot); margin-bottom: 0.6rem; }
+    .section-title { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: clamp(1.6rem, 4vw, 2.3rem); margin-bottom: 0.7rem; letter-spacing: -0.02em; }
+    .section-sub { color: var(--muted); font-size: 0.92rem; max-width: 460px; }
+    code { background: #fce7f3; color: var(--pink-deep); padding: 0.1em 0.4em; border-radius: 5px; font-size: 0.88em; font-family: monospace; }
+
+    /* FEATURES */
+    .features { background: var(--grad-soft); padding: 5rem 2rem; }
+    .features-head { text-align: center; margin-bottom: 3rem; }
+    .features-head .section-sub { margin: 0 auto; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; max-width: 900px; margin: 0 auto; }
+    .feature-card { background: white; border-radius: 16px; padding: 1.6rem; border: 1px solid var(--rule); transition: transform 0.2s, box-shadow 0.2s; }
+    .feature-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(236,72,153,0.1); }
+    .feature-icon { font-size: 1.8rem; margin-bottom: 0.8rem; }
+    .feature-title { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.95rem; margin-bottom: 0.35rem; }
+    .feature-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.65; }
+
+    /* HOW */
+    .how { padding: 5rem 2rem; max-width: 680px; margin: 0 auto; }
+    .steps { display: flex; flex-direction: column; gap: 0; margin-top: 2.5rem; }
+    .step { display: flex; gap: 1.4rem; align-items: flex-start; padding-bottom: 2.2rem; position: relative; }
+    .step:not(:last-child)::before { content: ''; position: absolute; left: 19px; top: 42px; bottom: 0; width: 2px; background: linear-gradient(to bottom, #f472b6, #fce7f3); }
+    .step-dot { width: 40px; height: 40px; border-radius: 50%; background: var(--grad); display: flex; align-items: center; justify-content: center; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.9rem; color: white; flex-shrink: 0; box-shadow: 0 4px 14px rgba(236,72,153,0.3); }
+    .step-content { padding-top: 0.5rem; }
+    .step-title { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 1rem; margin-bottom: 0.3rem; }
+    .step-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.65; }
+
+    /* COMMANDS */
+    .commands { background: var(--grad-soft); padding: 5rem 2rem; }
+    .commands-inner { max-width: 680px; margin: 0 auto; }
+    .cmd-group { margin-bottom: 1.6rem; }
+    .cmd-group-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--pink-hot); margin-bottom: 0.6rem; }
+    .cmd-table { width: 100%; border-collapse: collapse; background: white; border-radius: 14px; overflow: hidden; border: 1px solid var(--rule); }
+    .cmd-table tr { border-bottom: 1px solid var(--rule); }
+    .cmd-table tr:last-child { border-bottom: none; }
+    .cmd-table td { padding: 0.75rem 1rem; font-size: 0.85rem; }
+    .cmd-table td:first-child { font-weight: 600; color: var(--pink-deep); white-space: nowrap; width: 155px; }
+    .cmd-table td:last-child { color: var(--muted); }
+
+    /* WHY */
+    .why { padding: 5rem 2rem; max-width: 680px; margin: 0 auto; }
+    .why-list { display: flex; flex-direction: column; gap: 0.85rem; margin-top: 2.5rem; }
+    .why-item { display: flex; align-items: flex-start; gap: 0.8rem; font-size: 0.9rem; }
+    .why-check { width: 22px; height: 22px; border-radius: 50%; background: var(--grad); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: white; flex-shrink: 0; margin-top: 2px; }
+
+    /* LEGAL */
+    .legal { padding: 5rem 2rem; background: var(--grad-soft); }
+    .legal-inner { max-width: 680px; margin: 0 auto; }
+    .legal-tabs { display: flex; gap: 0.5rem; margin: 2rem 0 1.5rem; }
+    .tab-btn { background: white; border: 2px solid var(--rule); color: var(--muted); font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.85rem; padding: 0.5rem 1.2rem; border-radius: 999px; cursor: pointer; transition: all 0.2s; }
+    .tab-btn.active { background: var(--grad); border-color: transparent; color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .legal-card { background: white; border-radius: 16px; padding: 2rem; border: 1px solid var(--rule); font-size: 0.85rem; color: var(--muted); line-height: 1.85; }
+    .legal-card h3 { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 1rem; color: var(--text); margin: 1.5rem 0 0.4rem; }
+    .legal-card h3:first-child { margin-top: 0; }
+    .legal-card a { color: var(--pink-hot); }
+
+    /* CTA */
+    .cta-banner { padding: 5rem 2rem; text-align: center; }
+    .cta-pill { display: inline-block; background: var(--grad-soft); border-radius: 24px; padding: 3rem 4rem; max-width: 540px; width: 100%; border: 1px solid var(--rule); }
+    .cta-pill h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.8rem; margin-bottom: 0.6rem; }
+    .cta-pill p { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+    /* FOOTER */
+    footer { background: #1a1025; color: rgba(255,255,255,0.45); padding: 2rem; text-align: center; font-size: 0.8rem; }
+    footer a { color: var(--pink-mid); text-decoration: none; }
+    .footer-logo { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.1rem; color: white; margin-bottom: 0.4rem; }
+
+    @keyframes floatUp { to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 560px) {
+      .nav-links .nav-link { display: none; }
+      .cta-pill { padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="#">
+    <img src="gumline.png" alt="Gumline" />
+    Gumline
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="#how">How it works</a>
+    <a class="nav-link" href="#commands">Commands</a>
+    <a class="nav-link" href="#legal">Legal</a>
+    <a class="btn-nav" href="https://discord.com/oauth2/authorize?client_id=1477571465472643236&scope=bot&permissions=536882256" target="_blank">☎️ Add to Discord</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <img class="hero-banner" src="gumline_banner.png" alt="Gumline" />
+  <div class="hero-badge">☎️ Free Discord Bot</div>
+  <h1>Cross-Server Calling,<br><span>Done Right.</span></h1>
+  <p class="hero-sub">Gumline connects your server to random Discord servers for live text calls — like a party line, but for the whole internet. GIFs, images, reactions, stickers, and reply sync, all free.</p>
+  <div class="cta-group">
+    <a class="btn-primary" href="https://discord.com/oauth2/authorize?client_id=1477571465472643236&scope=bot&permissions=536882256" target="_blank">☎️ Add Gumline Free</a>
+    <a class="btn-secondary" href="https://discord.gg/KtFGSmqgGe" target="_blank">💬 Join Community</a>
+  </div>
+</section>
+
+<section class="screenshot-section">
+  <div class="screenshot-wrap">
+    <div class="discord-topbar">
+      <div class="dot" style="background:#ff5f57"></div>
+      <div class="dot" style="background:#febc2e"></div>
+      <div class="dot" style="background:#28c840"></div>
+      <span style="font-size:0.75rem;color:rgba(255,255,255,0.3);margin-left:0.5rem"># gumline-calls</span>
+    </div>
+    <img class="screenshot-img" src="1772597506553_image.png" alt="Gumline in action" />
+  </div>
+</section>
+
+<section class="features">
+  <div class="features-head">
+    <p class="section-label">Features</p>
+    <h2 class="section-title">While others give you plain text,<br>Gumline gives you everything.</h2>
+    <p class="section-sub">The only free calling bot with the full Discord experience across servers.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card"><div class="feature-icon">📸</div><div class="feature-title">Images &amp; GIFs</div><div class="feature-desc">Share anything mid-call and it appears on both sides instantly.</div></div>
+    <div class="feature-card"><div class="feature-icon">😂</div><div class="feature-title">Reaction Mirroring</div><div class="feature-desc">React to a message and it mirrors on the other server in real time.</div></div>
+    <div class="feature-card"><div class="feature-icon">🎭</div><div class="feature-title">Sticker Support</div><div class="feature-desc">Yes, stickers too. No other free calling bot does this.</div></div>
+    <div class="feature-card"><div class="feature-icon">↩️</div><div class="feature-title">Synced Replies</div><div class="feature-desc">Both sides see who you're replying to, with their profile picture and name.</div></div>
+    <div class="feature-card"><div class="feature-icon">⌨️</div><div class="feature-title">Typing Indicators</div><div class="feature-desc">The other server sees when you're typing so calls feel alive.</div></div>
+    <div class="feature-card"><div class="feature-icon">🆓</div><div class="feature-title">Completely Free</div><div class="feature-desc">No premium tier. No paywalls. Everything, forever free.</div></div>
+  </div>
+</section>
+
+<section class="how" id="how">
+  <p class="section-label">How it works</p>
+  <h2 class="section-title">Up and running<br>in 30 seconds.</h2>
+  <div class="steps">
+    <div class="step"><div class="step-dot">1</div><div class="step-content"><div class="step-title">Add the bot</div><div class="step-desc">Invite Gumline to your server — no configuration required out of the box.</div></div></div>
+    <div class="step"><div class="step-dot">2</div><div class="step-content"><div class="step-title">Set your call channel</div><div class="step-desc">Type <code>g.setup</code> in the channel you want to use. Only needed once.</div></div></div>
+    <div class="step"><div class="step-dot">3</div><div class="step-content"><div class="step-title">Start a call</div><div class="step-desc">Type <code>g.c</code> and Gumline matches you with a random server in seconds.</div></div></div>
+    <div class="step"><div class="step-dot">4</div><div class="step-content"><div class="step-title">Just chat</div><div class="step-desc">Messages, reactions, GIFs, stickers — everything syncs live. Use <code>g.s</code> to skip or <code>g.h</code> to hang up anytime.</div></div></div>
+  </div>
+</section>
+
+<section class="commands" id="commands">
+  <div class="commands-inner">
+    <p class="section-label">Commands</p>
+    <h2 class="section-title">Everything you need.</h2>
+
+    <div class="cmd-group" style="margin-top:2rem">
+      <div class="cmd-group-label">— Call</div>
+      <table class="cmd-table">
+        <tr><td>g.c / g.call</td><td>Start a call with a random server</td></tr>
+        <tr><td>g.s / g.skip</td><td>Skip to a different server</td></tr>
+        <tr><td>g.h / g.hangup</td><td>Hang up and end the call</td></tr>
+        <tr><td>g.setup</td><td>Set the call channel (once per server)</td></tr>
+      </table>
+    </div>
+    <div class="cmd-group">
+      <div class="cmd-group-label">— Filters</div>
+      <table class="cmd-table">
+        <tr><td>g.furry</td><td>Cast a furry spell on the other side's messages 🐾</td></tr>
+        <tr><td>g.thug</td><td>Thuggify everything the other side says 🥷</td></tr>
+      </table>
+    </div>
+    <div class="cmd-group">
+      <div class="cmd-group-label">— Fun</div>
+      <table class="cmd-table">
+        <tr><td>g.fr</td><td>Share your username across the call</td></tr>
+        <tr><td>g.ship @a @b</td><td>Ship two people with a love meter 💘</td></tr>
+        <tr><td>g.mascot</td><td>🦆</td></tr>
+        <tr><td>@Gumline ...</td><td>Ask anything — 8 ball style response</td></tr>
+      </table>
+    </div>
+    <div class="cmd-group">
+      <div class="cmd-group-label">— Settings</div>
+      <table class="cmd-table">
+        <tr><td>g.prefix</td><td>Change the command prefix for your server</td></tr>
+        <tr><td>g.help</td><td>Full command list in Discord</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="why">
+  <p class="section-label">Why Gumline</p>
+  <h2 class="section-title">Built to be better<br>in every way that matters.</h2>
+  <div class="why-list">
+    <div class="why-item"><div class="why-check">✓</div><span>The only calling bot with free reaction mirroring</span></div>
+    <div class="why-item"><div class="why-check">✓</div><span>The only calling bot with free image + GIF + sticker relay</span></div>
+    <div class="why-item"><div class="why-check">✓</div><span>Typing indicators so calls feel alive</span></div>
+    <div class="why-item"><div class="why-check">✓</div><span>Custom prefix support per server</span></div>
+    <div class="why-item"><div class="why-check">✓</div><span>Synced reply embeds with profile pictures</span></div>
+    <div class="why-item"><div class="why-check">✓</div><span>Auto-disconnect after 10 min silence — no dead calls</span></div>
+    <div class="why-item"><div class="why-check">✓</div><span>Friend request system to stay in touch after calls</span></div>
+    <div class="why-item"><div class="why-check">✓</div><span>Active development — new features ship regularly</span></div>
+  </div>
+</section>
+
+<section class="legal" id="legal">
+  <div class="legal-inner">
+    <p class="section-label">Legal</p>
+    <h2 class="section-title">Privacy Policy &amp;<br>Terms of Service</h2>
+    <p style="color:var(--muted);font-size:0.85rem">Last updated: March 2025</p>
+    <div class="legal-tabs">
+      <button class="tab-btn active" onclick="showTab('privacy',this)">Privacy Policy</button>
+      <button class="tab-btn" onclick="showTab('terms',this)">Terms of Service</button>
+    </div>
+
+    <div class="tab-content active" id="tab-privacy">
+      <div class="legal-card">
+        <h3>What We Collect</h3>
+        <p>Gumline stores only the minimum data required to operate: server (guild) IDs, configured channel IDs, and custom command prefixes. This is stored locally on the bot's server and used solely to provide the service.</p>
+        <p>We do <strong>not</strong> store message content, user IDs, usernames, profile pictures, or any personally identifiable information beyond what Discord makes visible during an active call session.</p>
+        <h3>Message Relay</h3>
+        <p>During an active call, messages are relayed in real time between two servers. This relay is transient — messages are not logged, stored, or retained after they are sent. Once a call ends, no record of the conversation exists on our systems.</p>
+        <h3>Third Parties</h3>
+        <p>Gumline does not share any data with third parties. We do not sell, rent, or trade any information. The bot operates entirely within Discord's platform and is subject to <a href="https://discord.com/privacy" target="_blank">Discord's Privacy Policy</a>.</p>
+        <h3>Data Removal</h3>
+        <p>To remove your server's data, simply kick Gumline from your server. All associated configuration data is automatically deleted. For questions, reach out in our <a href="https://discord.gg/KtFGSmqgGe" target="_blank">community server</a>.</p>
+        <h3>Children's Privacy</h3>
+        <p>Gumline is intended for users who meet Discord's minimum age requirements (13+ in most regions). We do not knowingly collect data from children under 13.</p>
+        <h3>Changes</h3>
+        <p>We may update this policy from time to time. Continued use of the bot after changes constitutes acceptance of the updated policy.</p>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-terms">
+      <div class="legal-card">
+        <h3>Acceptance of Terms</h3>
+        <p>By adding Gumline to your Discord server or using its features, you agree to these Terms of Service. If you do not agree, please remove the bot from your server.</p>
+        <h3>Acceptable Use</h3>
+        <p>You may use Gumline for lawful purposes only. You agree not to use Gumline to send, share, or relay content that is illegal, harassing, threatening, sexually explicit involving minors, spam, phishing, or in violation of Discord's Terms of Service.</p>
+        <h3>Cross-Server Communication</h3>
+        <p>Gumline connects your server with random servers. Content relayed from other servers is outside our control. Server admins are responsible for moderating their own communities. Gumline provides moderation tools to help manage unwanted interactions.</p>
+        <h3>Service Availability</h3>
+        <p>Gumline is provided "as is" without warranties of any kind. We do not guarantee uninterrupted service or uptime. The service may be modified, suspended, or discontinued at any time without notice.</p>
+        <h3>Termination</h3>
+        <p>We reserve the right to ban servers or users from using Gumline at our discretion, particularly for violations of these terms or Discord's ToS. You may stop using Gumline at any time by removing the bot from your server.</p>
+        <h3>Limitation of Liability</h3>
+        <p>To the fullest extent permitted by law, Gumline and its developers are not liable for any damages arising from your use of the service, including content relayed from other servers.</p>
+        <h3>Contact</h3>
+        <p>For questions, concerns, or abuse reports, please reach out via our <a href="https://discord.gg/KtFGSmqgGe" target="_blank">community Discord server</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-banner">
+  <div class="cta-pill">
+    <h2>Ready to connect?</h2>
+    <p>Free forever. No setup headaches. Just type <code>g.c</code> and you're in.</p>
+    <a class="btn-primary" href="https://discord.com/oauth2/authorize?client_id=1477571465472643236&scope=bot&permissions=536882256" target="_blank">☎️ Add Gumline to Discord</a>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">☎️ Gumline</div>
+  <p>Free · No data stored · Works in any server</p>
+  <p style="margin-top:0.4rem">
+    <a href="#legal">Privacy Policy</a> &nbsp;·&nbsp; <a href="#legal">Terms of Service</a> &nbsp;·&nbsp; <a href="https://discord.gg/KtFGSmqgGe" target="_blank">Community</a>
+  </p>
+</footer>
+
+<script>
+  function showTab(name, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>
